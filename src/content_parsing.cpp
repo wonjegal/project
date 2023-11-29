@@ -5,10 +5,6 @@ content_parsing::content_parsing(std::string url) : html_tree(url) {
     int end = 0;
 }
 
-//std::string &content_parsing::remove_space(std::string &str) {
-
-//}
-
 article::article(std::string url) : content_parsing(url){
     strcpy(attr_value, "board-list-content-wrap ");
     strcpy(attr_key, "href");

@@ -20,7 +20,6 @@ public:
     std::string& trim(std::string& str) {
         return ltrim(rtrim(str));
     }
-    //std::string& remove_space(std::string& str);
 
     // tree순환하면서 적절한 attr 찾기
     void virtual print_article(myhtml_tree_node_t* node){}
