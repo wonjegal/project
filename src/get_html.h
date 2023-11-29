@@ -4,10 +4,23 @@
 
 // html class
 class html {
+public:
+    html(){}                // default constructor
+
+    html(std::string url) {
+        get_html(url);
+    };
+
+    std::string get_response() const{
+        return response;
+    }
+
+    void get_html(std::string url);
+
+    virtual ~html(){}               // default destructor
+
 protected:
-	void  get_html(std::string url);
-	
-	std::string response;
+    std::string response;
 };
 
 

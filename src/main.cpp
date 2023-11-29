@@ -2,58 +2,67 @@
 #include "content_parsing.h"
 #include "openai.hpp"
 
+class print_gpt{
+private:
+    std::string request;
+    std::string response;
+    nlohmann::json j1;
+public:
+    print_gpt(std::string str) : request(str) {
+        j1 = nlohmann::json::parse(str);
+    }
+    void resquest_to_gpt(){
+        auto chat = openai::chat().create(j1);
+        response = chat.dump(2);
+    }
+    void parsing_response(){
+        auto idx1 = response.find("content", 0), idx2 = response.find("role", 0);
+        response = response.substr(idx1 + 10, idx2-idx1 -21);
+        while(response.find("\\n-") != -1){
+            response.erase(response.find("\\n-"), 3);
+        }
+        while(response.find("\\n") != -1){
+            response.erase(response.find("\\n"), 2);
+        }
+    }
+    std::string get_response() const{
+        return response;
+    }
+};
+
 int main(void) {
-    class article homepage_noti("https://www.skku.edu/skku/campus/skk_comm/notice01.do");
 
-    homepage_noti.print_article(homepage_noti.get_root());
+    class content_parsing* notice =  new article("https://www.skku.edu/skku/campus/skk_comm/notice01.do");
 
-    for (int i = 0; i < homepage_noti.get_link().size(); i++) {
-        std::cout << homepage_noti.get_content()[i] << " , " << "https://www.skku.edu/skku/campus/skk_comm/notice01.do" + homepage_noti.get_link()[i] << std::endl;
+    notice->print_article(notice->get_root());
+
+    for (int i = 0; i < notice->get_link().size(); i++) {
+        std::cout << notice->get_content()[i] << " , " << "https://www.skku.edu/skku/campus/skk_comm/notice01.do" + notice->get_link()[i] << std::endl;
     }
 
 
     std::cout << "\n\n";
-    class menu homepage_menu("https://www.skku.edu/skku/campus/support/welfare_11_1.do?mode=info&srDt=2023-11-23&srCategory=L&conspaceCd=20201104&srResId=3&srShowTime=W");
 
-    homepage_menu.print_menu(homepage_menu.get_root());
+    class content_parsing* menu_all = new menu("https://www.skku.edu/skku/campus/support/welfare_11_1.do?mode=info&srDt=2023-11-23&srCategory=L&conspaceCd=20201104&srResId=3&srShowTime=W");
 
-    for (int i = 0 ; i < homepage_menu.get_content().size(); i++){
-        std::string str = homepage_menu.get_content()[i];
-        if (str == "") continue;
-        if (str.find("\n\t\t\t") != std::string::npos) {
-            int i;
-            for (i = 0 ;  i < str.size() ; i++){
-                if (str[i] == '\n') break;
-            }
-            str.erase(i, str.find_last_not_of(" \r\n\t\v\f") - 1);
-            std::cout << std::endl << str << std::endl;
-        }
-        else if ((str[0] == '1') || (str[0] == '2')) std::cout << std::endl << str << std::endl;
-        else if (!strcmp(str.c_str(), "메뉴")) std::cout << "\n";
-        else if (!strcmp(str.c_str(), "코너")) std::cout <<  " " << str;
-        else{
-            std::cout << str;
-        }
+    menu_all->print_article(menu_all->get_root());
+
+    std::string signal;
+    for (int i = 0 ; i < menu_all->get_content().size(); i++){
+        if(menu_all->get_content()[i].find("1F") != -1) signal += "    ";
+        else if(menu_all->get_content()[i].find("2F") != -1) signal += "      ";
+        signal += menu_all->get_content()[i];
     }
 
-    openai::start(); // Will use the api key provided by `OPENAI_API_KEY` environment variable
-    // openai::start("your_API_key", "optional_organization"); // Or you can handle it yourself
-
-    auto completion = openai::completion().create(R"(
-    {
-        "model": "text-davinci-003",
-        "prompt": "Say this is a test",
-        "max_tokens": 7,
-        "temperature": 0
+    openai::start("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");
+    std::string input;
+    while(1) {
+        std::cout << "요일과 코너이름을 입력해주세요\n";
+        getline(std::cin, input);
+        if(!strcmp(input.c_str(), "exit")) break;
+        print_gpt p1("{ \"model\": \"gpt-3.5-turbo\", \"messages\":[{\"role\":\"user\", \"content\": \"" + signal + input + "\"}], \"max_tokens\": 200, \"temperature\": 0 }");
+        p1.resquest_to_gpt();
+        p1.parsing_response();
+        std::cout << p1.get_response() << std::endl;
     }
-    )"_json); // Using user-defined (raw) string literals
-    std::cout << "Response is:\n" << completion.dump(2) << '\n';
-
-    auto image = openai::image().create({
-                                                { "prompt", "A logo with a cello in a heart"},
-                                                { "n", 1 },
-                                                { "size", "512x512" }
-                                        }); // Using initializer lists
-    std::cout << "Image URL is: " << image["data"][0]["url"] << '\n';
-    return 0;
 }
