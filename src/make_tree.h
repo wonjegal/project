@@ -4,8 +4,6 @@
 // html -> html_tree
 class html_tree : public html {		
 public:
-    html_tree(){}
-
     html_tree(std::string url) : html(url){
         initialize();
         make_tree(response);
@@ -24,5 +22,4 @@ protected:
 	myhtml_t* myhtml;
 	myhtml_tree_t* tree;
 	myhtml_tree_node_t* root;
-
 };

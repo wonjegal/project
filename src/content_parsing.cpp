@@ -1,13 +1,14 @@
 #include "content_parsing.h"
 
 content_parsing::content_parsing(std::string url) : html_tree(url) {
-    int start = 0;
-    int end = 0;
+    start = 0;
+    end = 0;
 }
 
 article::article(std::string url) : content_parsing(url){
     strcpy(attr_value, "board-list-content-wrap ");
     strcpy(attr_key, "href");
+    ur = url;
 }
 
 menu::menu(std::string url) : content_parsing(url){
@@ -15,6 +16,11 @@ menu::menu(std::string url) : content_parsing(url){
     strcpy(attr_value_cont, "weeListCont");
     strcpy(end_attr, "mealImg");
 }
+
+summarize::summarize(std::string url) : content_parsing(url){
+    strcpy(attr_value, "pre");
+}
+
 
 void article::check_node_attr(myhtml_tree_node_t* node)
 {
@@ -25,33 +31,26 @@ void article::check_node_attr(myhtml_tree_node_t* node)
 
         if (name) {
             const char* value = myhtml_attribute_value(attr, NULL);
-
             if (value) {
                 if (!strcmp(value, attr_value)) {
                     start = 1;
                 }
             }
-
             if (start == 1 && !strcmp(name, attr_key)) {
                 link.push_back(value);
                 end = 1;
             }
         }
-
         attr = myhtml_attribute_next(attr);
     }
 }
 
-void article::print_article(myhtml_tree_node_t* node) {
-
+void article::tree_traversal(myhtml_tree_node_t* node) {
 	while (node) {
-		const char* tag_name = myhtml_tag_name_by_id(tree, myhtml_node_tag_id(node), NULL);
-	
 		check_node_attr(node);
-
         myhtml_tag_id_t tag_id = myhtml_node_tag_id(node);
 
-        if (tag_id == MyHTML_TAG__TEXT || tag_id == MyHTML_TAG__COMMENT) {
+        if (tag_id == MyHTML_TAG__TEXT || tag_id == MyHTML_TAG__COMMENT) {          // MyHtml_TAG__TEXT = 0x001, MyHTML_TAG__COMMENT = 0x002
             const char* node_text = myhtml_node_text(node, NULL);
             if (start == 1 && end == 1) {
                 content.push_back(node_text);
@@ -59,14 +58,13 @@ void article::print_article(myhtml_tree_node_t* node) {
                 end = 0;
             }
         }
-        else {
-        }
 
         // check children
-        print_article(myhtml_node_child(node));
+        tree_traversal(myhtml_node_child(node));
         node = myhtml_node_next(node);
 	}
 }
+
 
 std::vector<std::string> article::get_link(){
     return link;
@@ -87,7 +85,6 @@ void menu::check_node_attr(myhtml_tree_node_t *node) {
 
         if (name) {
             const char* value = myhtml_attribute_value(attr, NULL);
-
             if (value) {
                 if (!strcmp(value, attr_value_week) || !strcmp(value, attr_value_cont)) {
                     start = 1;
@@ -98,16 +95,13 @@ void menu::check_node_attr(myhtml_tree_node_t *node) {
                     end = 0;
                 }
             }
-
         }
         attr = myhtml_attribute_next(attr);
     }
 }
 
-void menu::print_article(myhtml_tree_node_t *node) {
+void menu::tree_traversal(myhtml_tree_node_t *node) {
     while (node) {
-        const char* tag_name = myhtml_tag_name_by_id(tree, myhtml_node_tag_id(node), NULL);
-
         check_node_attr(node);
 
         myhtml_tag_id_t tag_id = myhtml_node_tag_id(node);
@@ -118,11 +112,9 @@ void menu::print_article(myhtml_tree_node_t *node) {
                 if(strcmp(node_text, "")) content.push_back(node_text);
             }
         }
-        else {
-        }
 
         // check children
-        print_article(myhtml_node_child(node));
+        tree_traversal(myhtml_node_child(node));
         node = myhtml_node_next(node);
     }
 }
@@ -130,6 +122,7 @@ void menu::print_article(myhtml_tree_node_t *node) {
 std::vector<std::string> menu::get_content(){
     auto iter = content.begin();
     while(iter != content.end()) {
+        // 양 끝 공백 제거
         *iter = trim(*iter);
         if (!strcmp((*iter).c_str(), "")) {
             iter = content.erase(iter);
@@ -143,8 +136,38 @@ std::vector<std::string> menu::get_content(){
             if ((j != -1) && (k == -1) && ((temp[i] != '\t') && (temp[i] != '\n'))) k = i;
         }
         if((j != -1) && (k != -1)) *iter = temp.erase(j, k-j);
+
+        *iter = ' ' + *iter + ' ';
+        // 확실히 구분 짓기 위해 요일 앞에 markdown 표시
+        std::regex r("(월요일|화|수|목|금)\\(\\d+\\.\\d+\\)");
+        std::smatch m;
+        if(std::regex_match(*iter, m, r)){
+            *iter = '#' + *iter;
+        }
         iter++;
     }
 
+    return content;
+}
+
+
+void summarize::tree_traversal(myhtml_tree_node_t* node) {
+
+    while (node) {
+        myhtml_tag_id_t tag_id = myhtml_node_tag_id(node);
+
+        mycore_string_t *test;
+        if (tag_id == MyHTML_TAG_PRE) {
+            test = myhtml_token_node_string(myhtml_node_token(myhtml_node_child(node)));
+            content.push_back(test->data);
+        }
+
+        // check children
+        tree_traversal(myhtml_node_child(node));
+        node = myhtml_node_next(node);
+    }
+}
+
+std::vector<std::string> summarize::get_content(){
     return content;
 }

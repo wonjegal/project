@@ -5,8 +5,6 @@
 // html class
 class html {
 public:
-    html(){}                // default constructor
-
     html(std::string url) {
         get_html(url);
     };
