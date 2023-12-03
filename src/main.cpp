@@ -80,6 +80,8 @@ int main(void) {
                 p1.resquest_to_gpt();
                 p1.parsing_response();
                 std::cout << p1.get_response() << std::endl;
+
+                delete summary;         // free memory
             }
         } else if (!strcmp(input.c_str(), "2")) {
             std::cin.ignore(1);
@@ -96,4 +98,7 @@ int main(void) {
             break;
         }
     }
+
+    delete notice;
+    delete menu_all;
 }
