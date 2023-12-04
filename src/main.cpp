@@ -47,7 +47,7 @@ int main(void) {
         signal += menu_all->get_content()[i];
     }
 
-    openai::start("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");
+    openai::start("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");
     std::string input;
 
     while (1) {
